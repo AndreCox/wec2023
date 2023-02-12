@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "module": "CommonJS",
+    "target": "ES2015",
+    "outDir": "dist"
+  }
+}

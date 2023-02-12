@@ -1,77 +1,116 @@
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
+import background from "../assets/images/back.jpg";
+import HealthBar from "../components/HealthBar";
+import { io } from "socket.io-client";
+import { Button } from "@material-tailwind/react";
+import { HiRefresh } from "react-icons/hi";
+import { observer } from "mobx-react-lite";
+import { store } from "../stores/Store";
 
-export default function Home() {
+const Home = observer(() => {
+  const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    store.socket = io("ws://localhost:3001", {
+      reconnectionDelayMax: 5000,
+      reconnection: true,
+      reconnectionDelay: 500,
+      reconnectionAttempts: 10,
+
+      auth: {
+        token: "123",
+      },
+      query: {
+        "my-key": "my-value",
+      },
+    });
+
+    store.socket.on("init", (e) => {
+      store.playerID = e.id;
+      store.teamID = e.team;
+      console.log(e);
+    });
+
+    store.socket.on("connect", () => {
+      console.log("connected");
+      if (!connected && isNaN(store.playerID) && isNaN(store.teamID)) {
+        store.socket.emit("join");
+      }
+      setConnected(true);
+    });
+
+    store.socket.on("disconnect", () => {
+      console.log("disconnected");
+      setConnected(false);
+      store.playerID = NaN;
+      store.teamID = NaN;
+    });
+  }, []);
+
   return (
-    <div className="p-[0 2rem]">
+    <div className="">
       <Head>
-        <title>Next Template</title>
-        <meta name="description" content="Generated with next-template" />
+        <title>Battle Ship</title>
+        <meta name="description" content="A redesign of battleship " />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="min-h-screen p-4 flex flex-1 flex-col justify-center items-center text-4xl">
-        <h1 className="font-bold text-center">
-          Welcome to{" "}
-          <a
-            href="https://github.com/andrecox/next-template"
-            className="text-blue-500 underline decoration-transparent hover:decoration-blue-500 transition-all"
-          >
-            Next Template!
-          </a>
-        </h1>
-        <h2 className="mt-2">
-          Powered by{" "}
-          <a
-            href="https://nextjs.org"
-            className="text-blue-500 underline decoration-transparent hover:decoration-blue-500 transition-all"
-          >
-            Next.js
-          </a>
-        </h2>
-
-        <p className="text-center m-16 text-[1.5rem]">
-          Get started by editing{" "}
-          <code className="bg-[#fafafa] rounded-md p-[0.75rem] font-mono text-[1.1rem]">
-            pages/index.js
-          </code>
-        </p>
-
-        <div className="flex items-center justify-center flex-wrap max-w-[800px]">
-          <a href="https://tailwindcss.com" className={styles.card}>
-            <h2>Tailwind CSS &rarr;</h2>
-            <p>
-              Learn about Tailwind keeps the app size small while still being
-              easy to use.
-            </p>
-          </a>
-
-          <a href="https://mobx.js.org/README.html" className={styles.card}>
-            <h2>MobX &rarr;</h2>
-            <p>A powerful way to manage state without tons of boilerplate!</p>
-          </a>
-
-          <a href="https://pages.github.com/" className={styles.card}>
-            <h2>Github Pages &rarr;</h2>
-            <p>Build a static site and deploy it using Github Actions.</p>
-          </a>
-
-          <a href="https://capacitorjs.com" className={styles.card}>
-            <h2>Capacitor JS &rarr;</h2>
-            <p>Build your web app for mobile with access to native features.</p>
-          </a>
+      <main className=" text-lg flex flex-col justify-center h-screen pb-16">
+        <div
+          className="h1 pb-8 text-white drop-shadow-2xl text-center text-6xl mt-12"
+          style={{
+            fontFamily: "TitleFont",
+          }}
+        >
+          Battle ShIP
         </div>
-        <p className="text-center mt-16 text-[1.5rem]">
-          MobX state management built in!
-        </p>
-        <Link href="/mobx">
-          <div className="text-blue-500 under text-xl underline decoration-transparent  hover:decoration-blue-500 transition-all">
-            Check it out here
+
+        <div className="flex justify-center text-2xl text-white drop-shadow-2xl">
+          <div className="flex flex-row space-x-4">
+            <h2
+              style={{
+                color: connected ? "#00ff00" : "0000ff",
+              }}
+            >
+              {connected ? "Connected" : "Disconnected"}{" "}
+            </h2>
+            <Button
+              className="rounded-full p-2"
+              hidden={connected}
+              onClick={() => {
+                store.socket.connect();
+                // try to update the ui
+              }}
+            >
+              <HiRefresh className="text-2xl" />
+            </Button>
           </div>
-        </Link>
+        </div>
+        <div className="flex justify-center mt-4">
+          <Button disabled={!connected}>
+            <Link
+              href={{
+                pathname: "/game",
+              }}
+            >
+              Start Game{" "}
+            </Link>
+          </Button>
+        </div>
       </main>
+      <div className="absolute top-0 left-0 -z-50 overflow-clip">
+        <Image
+          src={background}
+          alt="background"
+          className="object-cover w-screen h-screen blur-sm scale-110 brightness-75"
+        />
+      </div>
     </div>
   );
-}
+});
+
+export default Home;
